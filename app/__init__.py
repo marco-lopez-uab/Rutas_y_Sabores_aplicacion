@@ -1,6 +1,6 @@
 from flask import Flask
 from .extensions import appbuilder , db
-
+from app.models import Cliente, Guia, Ruta, Refrigerio, Excursion, ReservaExcursion
 
 def create_app() -> Flask:
     app = Flask(__name__)
@@ -11,7 +11,7 @@ def create_app() -> Flask:
         # db.create_all()
         appbuilder.init_app(app, db.session)
         from . import models
-        from .models import Categoria, Ingrediente
+        from .models import Cliente, Guia, Ruta, Refrigerio, Excursion, ReservaExcursion
         from . import views
         
         # registrar la view de ia
