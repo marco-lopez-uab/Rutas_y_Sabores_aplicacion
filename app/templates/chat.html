@@ -1,0 +1,98 @@
+{% extends "appbuilder/base.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex align-items-center">
+            <i class="fa fa-comments fa-2x mr-3"></i>
+            <h3 class="mb-0">Asistente Virtual - Rutas y Sabores</h3>
+        </div>
+        <div class="card-body">
+            <div id="chat-box" class="p-3 mb-3 border rounded" style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
+                <div class="class=alert alert-info text-dark">
+                    <strong>🤖 Asistente:</strong> ¡Hola! Soy tu asistente de <strong>Rutas y Sabores</strong>. ¿En qué puedo ayudarte hoy con nuestras rutas, excursiones o gastronomía local?
+                </div>
+            </div>
+
+            <form id="chat-form" class="d-flex">
+                <input type="text" id="user-input" class="form-control mr-2" placeholder="Escribe tu consulta aquí..." required autocomplete="off">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-paper-plane"></i> Enviar
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Librería para formatear Markdown (negritas, listas, saltos de línea) -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<script>
+document.getElementById('chat-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const input = document.getElementById('user-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const chatBox = document.getElementById('chat-box');
+
+    // Renderizar mensaje del usuario
+    chatBox.innerHTML += `
+        <div class="text-right mb-2">
+            <span class="d-inline-block p-2 bg-primary text-white rounded text-left" style="max-width: 80%;">
+                <strong>Tú:</strong> ${message}
+            </span>
+        </div>`;
+
+    input.value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // Indicador de carga
+    const loadingId = 'loading-' + Date.now();
+    chatBox.innerHTML += `
+        <div id="${loadingId}" class="text-left mb-2">
+            <span class="d-inline-block p-2 bg-light text-muted border rounded">
+                <em>🤖 Pensando respuesta...</em>
+            </span>
+        </div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    try {
+        const response = await fetch('/api/asistente', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mensaje: message })
+        });
+
+        const data = await response.json();
+        document.getElementById(loadingId).remove();
+
+        if (response.ok && data.respuesta) {
+            chatBox.innerHTML += `
+                <div class="text-left mb-2">
+                    <div class="d-inline-block p-2 bg-light border rounded text-dark" style="max-width: 80%; white-space: pre-line;">
+                        <strong>🤖 Asistente:</strong><br>${marked.parse(data.respuesta)}
+                    </div>
+                </div>`;
+        } else {
+            chatBox.innerHTML += `
+                <div class="text-left mb-2">
+                    <div class="d-inline-block p-2 bg-danger text-white rounded">
+                        <strong>Error:</strong> ${data.error || 'No se pudo obtener respuesta.'}
+                    </div>
+                </div>`;
+        }
+    } catch (err) {
+        document.getElementById(loadingId).remove();
+        chatBox.innerHTML += `
+            <div class="text-left mb-2">
+                <div class="d-inline-block p-2 bg-danger text-white rounded">
+                    <strong>Error:</strong> Conexión fallida con el servidor.
+                </div>
+            </div>`;
+    }
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+});
+</script>
+{% endblock %}
