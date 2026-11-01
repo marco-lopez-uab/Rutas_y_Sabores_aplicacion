@@ -40,3 +40,33 @@ appbuilder.add_view(RefrigerioView, "Refrigerios", icon="fa-coffee", category="C
 # Categoría: Operaciones
 appbuilder.add_view(ExcursionView, "Excursiones", icon="fa-tree", category="Operaciones")
 appbuilder.add_view(ReservaExcursionView, "Reservas", icon="fa-calendar-check-o", category="Operaciones")
+
+
+#bloque IA
+# from flask_appbuilder import BaseView, expose
+
+# class AsistenteView(BaseView):
+#     default_view = 'index'
+
+#     @expose('/')
+#     def index(self):
+#         return self.render_template('index.html')
+
+# appbuilder.add_view_no_menu(AsistenteView)
+# appbuilder.add_link("Asistente Virtual", href="/api/asistente", icon="fa-comments", category="Operaciones")
+from flask_appbuilder import BaseView, expose
+
+class AsistenteView(BaseView):
+    default_view = 'chat'
+
+    @expose('/chat/')
+    def chat(self):
+        return self.render_template('chat.html')
+
+appbuilder.add_view(
+    AsistenteView,
+    "Asistente Virtual",
+    href="/asistenteview/chat/",
+    icon="fa-comments",
+    category="Operaciones"
+)
