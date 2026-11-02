@@ -1,79 +1,134 @@
 {% extends "appbuilder/base.html" %}
 
 {% block content %}
-
-
-<div class="container my-4">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white d-flex align-items-center">
-            <i class="fa fa-comments fa-2x mr-3"></i>
-            <h3 class="mb-0">Asistente Virtual - Rutas y Sabores</h3>
+<div class="container my-4" style="max-width: 850px;">
+    <div class="card shadow-lg border-0 rounded-lg overflow-hidden">
+        <!-- Encabezado del Chat -->
+        <div class="card-header text-white d-flex align-items-center justify-content-between p-3" style="background-color: #0f766e;">
+            <div class="d-flex align-items-center">
+                <div class="bg-white rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 45px; height: 45px; font-size: 22px; color: #0f766e;">
+                    🤖
+                </div>
+                <div>
+                    <h4 class="mb-0 font-weight-bold text-white" style="font-size: 1.2rem;">Asistente Virtual IA</h4>
+                    <small class="text-white-50"><i class="fa fa-circle text-warning mr-1" style="font-size: 10px;"></i>Rutas y Sabores • En línea</small>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-outline-light" onclick="limpiarChat()"><i class="fa fa-refresh mr-1"></i> Nueva consulta</button>
         </div>
-        <div class="card-body">
-            <div id="chat-box" class="p-3 mb-3 border rounded" style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
-                <div class="alert alert-info text-dark">
-                    <strong>🤖 Asistente:</strong> ¡Hola! Soy tu asistente de <strong>Rutas y Sabores</strong>. ¿En qué puedo ayudarte?
+
+        <!-- Área de Conversación -->
+        <div class="card-body p-4" style="background-color: #1e293b;">
+            <div id="chat" class="d-flex flex-column" style="height: 430px; overflow-y: auto; padding-right: 8px;">
+                <div class="d-flex align-items-start mb-3">
+                    <span class="badge badge-success p-2 mr-2" style="font-size: 14px; border-radius: 50%;">🤖</span>
+                    <div class="bg-white p-3 shadow-sm text-dark" style="max-width: 80%; border-radius: 15px; border-top-left-radius: 0; color: #0f172a !important;">
+                        ¡Hola! Soy tu asistente inteligente de <strong>Rutas y Sabores</strong>. ¿En qué te puedo ayudar hoy?
+                    </div>
                 </div>
             </div>
 
-            <form id="chat-form" class="d-flex">
-                <input type="text" id="user-input" class="form-control mr-2" placeholder="Escribe tu consulta aquí..." required autocomplete="off">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fa fa-paper-plane"></i> Enviar
-                </button>
+            <!-- Formulario de Entrada -->
+            <form id="form" class="mt-3">
+                <div class="input-group">
+                    <input type="text" id="mensaje" class="form-control form-control-lg border-0 shadow-sm" placeholder="Escribe tu consulta aquí..." autocomplete="off" required style="border-radius: 25px 0 0 25px; font-size: 15px; background-color: #ffffff; color: #000000;">
+                    <div class="input-group-append">
+                        <button id="enviar" type="submit" class="btn btn-success px-4 shadow-sm" style="border-radius: 0 25px 25px 0; background-color: #0f766e; border: none;">
+                            <i class="fa fa-paper-plane mr-1"></i> Enviar
+                        </button>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Librería para formatear Markdown -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
-document.getElementById('chat-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const input = document.getElementById('user-input');
-    const message = input.value.trim();
-    if (!message) return;
+const formulario = document.getElementById("form");
+const input = document.getElementById("mensaje");
+const chat = document.getElementById("chat");
+const button = document.getElementById("enviar");
 
-    const chatBox = document.getElementById('chat-box');
+let historico = [];
 
-    // Renderizar mensaje del usuario
-    chatBox.innerHTML += `
-        <div class="text-right mb-2">
-            <span class="d-inline-block p-2 bg-primary text-white rounded text-left" style="max-width: 80%;">
-                <strong>Tú:</strong> ${message}
-            </span>
+function agregarBurbuja(autor, texto, esUsuario) {
+    const contenedor = document.createElement("div");
+    contenedor.className = `d-flex align-items-start mb-3 ${esUsuario ? 'justify-content-end' : ''}`;
+
+    const contenidoFormateado = esUsuario ? texto : (typeof marked !== 'undefined' ? marked.parse(texto) : texto);
+
+    // Burbuja del usuario en color Azul Oscuro (#0284c7) con texto blanco brillante para máximo contraste
+    const estiloBurbuja = esUsuario 
+        ? 'background-color: #0284c7 !important; color: #ffffff !important; border-top-right-radius: 0;' 
+        : 'background-color: #ffffff !important; color: #0f172a !important; border-top-left-radius: 0;';
+
+    const contenido = `
+        ${!esUsuario ? '<span class="badge badge-success p-2 mr-2" style="font-size: 14px; border-radius: 50%;">🤖</span>' : ''}
+        <div class="p-3 shadow-sm" style="max-width: 80%; border-radius: 15px; ${estiloBurbuja}">
+            <strong style="font-size: 12px; opacity: 0.9; color: ${esUsuario ? '#e0f2fe' : '#475569'};">${autor}</strong>
+            <div class="mt-1" style="font-weight: 500;">${contenidoFormateado}</div>
+        </div>
+        ${esUsuario ? '<span class="badge badge-secondary p-2 ml-2" style="font-size: 14px; border-radius: 50%;">👤</span>' : ''}
+    `;
+
+    contenedor.innerHTML = contenido;
+    chat.appendChild(contenedor);
+    chat.scrollTop = chat.scrollHeight;
+    return contenedor;
+}
+
+function limpiarChat() {
+    historico = [];
+    chat.innerHTML = `
+        <div class="d-flex align-items-start mb-3">
+            <span class="badge badge-success p-2 mr-2" style="font-size: 14px; border-radius: 50%;">🤖</span>
+            <div class="bg-white p-3 shadow-sm text-dark" style="max-width: 80%; border-radius: 15px; border-top-left-radius: 0; color: #0f172a !important;">
+                ¡Conversación reiniciada! ¿En qué más te puedo ayudar?
+            </div>
         </div>
     `;
-    input.value = '';
-    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+formulario.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const mensajeTexto = input.value.trim();
+    if (!mensajeTexto) return;
+
+    const historialMensajes = [...historico];
+    agregarBurbuja("Tú", mensajeTexto, true);
+    historico.push({ role: "user", content: mensajeTexto });
+
+    input.value = "";
+    button.disabled = true;
+
+    const cargandoElem = agregarBurbuja("IA", "<em>Pensando respuesta...</em>", false);
 
     try {
-        const response = await fetch('/asistente/api', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mensaje: message })
+        const response = await fetch("/api/asistente", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                mensaje: mensajeTexto,
+                history: historialMensajes 
+            })
         });
+
         const data = await response.json();
-        
-        const respuestaHtml = marked.parse(data.respuesta || 'Sin respuesta');
-        chatBox.innerHTML += `
-            <div class="text-left mb-2">
-                <div class="alert alert-secondary d-inline-block p-2 text-dark" style="max-width: 80%;">
-                    <strong>🤖 Asistente:</strong><br>${respuestaHtml}
-                </div>
-            </div>
-        `;
-        chatBox.scrollTop = chatBox.scrollHeight;
-    } catch (err) {
-        chatBox.innerHTML += `
-            <div class="text-left mb-2">
-                <div class="alert alert-danger d-inline-block p-2" style="max-width: 80%;">
-                    <strong>Error:</strong> No se pudo conectar con el servidor.
-                </div>
-            </div>
-        `;
+
+        if (!response.ok) throw new Error(data.error || "Error en el servidor.");
+
+        cargandoElem.remove();
+        agregarBurbuja("IA", data.respuesta, false);
+        historico.push({ role: "assistant", content: data.respuesta });
+
+    } catch (error) {
+        cargandoElem.remove();
+        agregarBurbuja("Error", error.message || "No se pudo conectar con el servidor.", false);
+    } finally {
+        button.disabled = false;
+        input.focus();
     }
 });
 </script>
