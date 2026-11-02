@@ -68,5 +68,4 @@ appbuilder.add_view(
     "Asistente Virtual",
     href="/asistenteview/chat/",
     icon="fa-comments",
-    category="Operaciones"
 )
