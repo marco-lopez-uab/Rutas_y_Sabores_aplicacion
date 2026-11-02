@@ -2,7 +2,7 @@ from flask_appbuilder import ModelView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from . import appbuilder
 from .models import Cliente, Guia, Ruta, Refrigerio, Excursion, ReservaExcursion
-
+from . import reportes
 # Cliente
 class ClienteView(ModelView):
     datamodel = SQLAInterface(Cliente)
