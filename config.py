@@ -27,7 +27,7 @@ CSRF_ENABLED = True
 APP_NAME = "Rutas & Sabores"
 
 # Uncomment to setup Setup an App icon
-# APP_ICON = "static/img/logo.jpg"
+APP_ICON = "/static/img/logo.jpeg"
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -100,7 +100,7 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # APP_THEME = "amelia.css"
 # APP_THEME = "cosmo.css"
 # APP_THEME = "cyborg.css"
-# APP_THEME = "flatly.css"
+APP_THEME = "flatly.css"
 # APP_THEME = "journal.css"
 # APP_THEME = "readable.css"
 # APP_THEME = "simplex.css"
@@ -108,3 +108,8 @@ IMG_UPLOAD_URL = "/static/uploads/"
 # APP_THEME = "spacelab.css"
 # APP_THEME = "united.css"
 # APP_THEME = "yeti.css"
+# FAB_ADD_SECURITY_VIEWS = True
+# Cargar tu archivo CSS personalizado automáticamente
+# FAB_STATIC_FOLDER = 'static'
+# Registrar el archivo custom.css en el encabezado global
+#APP_THEME = "flatly.css"  # Puedes mantener el tema que tenías

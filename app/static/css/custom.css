@@ -1,0 +1,16 @@
+/* Limitar el tamaño de cualquier logo en la barra de navegación */
+.navbar-brand img, .navbar-header img {
+    max-height: 40px !important;
+    width: auto !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+/* Mostrar la frase "Rutas y Sabores" a un lado */
+.navbar-brand::after {
+    content: " Rutas y Sabores";
+    font-weight: bold;
+    font-size: 18px;
+    color: #ffffff;
+    vertical-align: middle;
+}
