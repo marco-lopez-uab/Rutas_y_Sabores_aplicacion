@@ -1,5 +1,5 @@
 import io
-from flask import Response, make_response
+from flask import Response, make_response, request
 from flask_appbuilder import BaseView, expose, has_access
 from sqlalchemy import func
 from app import appbuilder, db
@@ -11,28 +11,41 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
+
 class ReportesView(BaseView):
     default_view = 'reporte_rutas'
 
-    # --- REPORTE 1: Reservas y Pasajeros por Ruta ---
-    @expose('/rutas/')
+    # --- REPORTE 1: Reservas y Pasajeros por Ruta (Con Filtro de Dificultad o Nombre) ---
+    @expose('/rutas/', methods=['GET', 'POST'])
     @has_access
     def reporte_rutas(self):
-        resultados = db.session.query(
+        ruta_filtro = request.args.get('ruta_nombre', '').strip()
+        
+        query = db.session.query(
             Ruta.nombre.label('ruta_nombre'),
             Ruta.dificultad,
             func.count(ReservaExcursion.id).label('total_reservas'),
             func.coalesce(func.sum(ReservaExcursion.num_personas), 0).label('total_personas')
         ).join(Excursion, Ruta.id == Excursion.ruta_id)\
-         .join(ReservaExcursion, Excursion.id == ReservaExcursion.excursion_id)\
-         .group_by(Ruta.id).all()
+         .join(ReservaExcursion, Excursion.id == ReservaExcursion.excursion_id)
 
-        return self.render_template('reporte_reservas.html', resultados=resultados)
+        if ruta_filtro:
+            query = query.filter(Ruta.nombre.ilike(f"%{ruta_filtro}%"))
 
-    # --- REPORTE 2: Top Excursiones más Solicitadas ---
-    @expose('/top_excursiones/')
+        resultados = query.group_by(Ruta.id).all()
+
+        return self.render_template('reporte_reservas.html', resultados=resultados, ruta_filtro=ruta_filtro)
+
+    # --- REPORTE 2: Top Excursiones (Con Filtro por Límite de Resultados) ---
+    @expose('/top_excursiones/', methods=['GET', 'POST'])
     @has_access
     def reporte_top_excursiones(self):
+        limite_filtro = request.args.get('limite', '5')
+        try:
+            limite_num = int(limite_filtro)
+        except ValueError:
+            limite_num = 5
+
         resultados = db.session.query(
             Excursion.id.label('excursion_id'),
             Ruta.nombre.label('ruta_nombre'),
@@ -42,40 +55,50 @@ class ReportesView(BaseView):
          .join(ReservaExcursion, Excursion.id == ReservaExcursion.excursion_id)\
          .group_by(Excursion.id, Ruta.nombre)\
          .order_by(func.sum(ReservaExcursion.num_personas).desc())\
-         .limit(5).all()
+         .limit(limite_num).all()
 
-        return self.render_template('reporte_top.html', resultados=resultados)
+        return self.render_template('reporte_top.html', resultados=resultados, limite_filtro=limite_num)
 
-    # --- REPORTE 3: Balance de Ingresos Totales ---
-    @expose('/ingresos/')
+    # --- REPORTE 3: Balance de Ingresos Totales (Con Filtro por Ruta) ---
+    @expose('/ingresos/', methods=['GET', 'POST'])
     @has_access
     def reporte_ingresos(self):
-        resultados = db.session.query(
+        ruta_filtro = request.args.get('ruta_nombre', '').strip()
+
+        query = db.session.query(
             Excursion.id.label('excursion_id'),
             Ruta.nombre.label('ruta_nombre'),
             Excursion.precio,
             func.coalesce(func.sum(ReservaExcursion.num_personas), 0).label('total_pasajeros'),
             (func.coalesce(func.sum(ReservaExcursion.num_personas), 0) * Excursion.precio).label('total_ingresos')
         ).join(Ruta, Excursion.ruta_id == Ruta.id)\
-         .join(ReservaExcursion, Excursion.id == ReservaExcursion.excursion_id)\
-         .group_by(Excursion.id, Ruta.nombre, Excursion.precio).all()
+         .join(ReservaExcursion, Excursion.id == ReservaExcursion.excursion_id)
 
-        return self.render_template('reporte_ingresos.html', resultados=resultados)
+        if ruta_filtro:
+            query = query.filter(Ruta.nombre.ilike(f"%{ruta_filtro}%"))
+
+        resultados = query.group_by(Excursion.id, Ruta.nombre, Excursion.precio).all()
+
+        return self.render_template('reporte_ingresos.html', resultados=resultados, ruta_filtro=ruta_filtro)
 
     # --- DESCARGA / EXPORTACIÓN A PDF ---
-    @expose('/ingresos/exportar_pdf')
-    @has_access
-    @expose('/ingresos/exportar_pdf')
+    @expose('/ingresos/exportar_pdf/')
     @has_access
     def exportar_ingresos_pdf(self):
-        resultados = db.session.query(
+        ruta_filtro = request.args.get('ruta_nombre', '').strip()
+
+        query = db.session.query(
             Ruta.nombre.label('ruta_nombre'),
             Excursion.precio,
             func.coalesce(func.sum(ReservaExcursion.num_personas), 0).label('total_pasajeros'),
             (func.coalesce(func.sum(ReservaExcursion.num_personas), 0) * Excursion.precio).label('total_ingresos')
         ).join(Ruta, Excursion.ruta_id == Ruta.id)\
-         .join(ReservaExcursion, Excursion.id == ReservaExcursion.excursion_id)\
-         .group_by(Excursion.id, Ruta.nombre, Excursion.precio).all()
+         .join(ReservaExcursion, Excursion.id == ReservaExcursion.excursion_id)
+
+        if ruta_filtro:
+            query = query.filter(Ruta.nombre.ilike(f"%{ruta_filtro}%"))
+
+        resultados = query.group_by(Excursion.id, Ruta.nombre, Excursion.precio).all()
 
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -83,6 +106,8 @@ class ReportesView(BaseView):
         styles = getSampleStyleSheet()
 
         elements.append(Paragraph("<b>Reporte de Ingresos - Rutas y Sabores</b>", styles['Title']))
+        if ruta_filtro:
+            elements.append(Paragraph(f"<i>Filtro aplicado: Ruta que contiene '{ruta_filtro}'</i>", styles['Normal']))
         elements.append(Spacer(1, 12))
 
         data = [["Ruta", "Precio U.", "Pasajeros", "Total Generado (Bs.)"]]
@@ -90,10 +115,10 @@ class ReportesView(BaseView):
 
         for row in resultados:
             ingreso = row.total_ingresos or 0
-            data.append([row.ruta_nombre, f"Bs. {row.precio:,.2f}", str(row.total_pasajeros), f"Bs. {ingreso:,.2f}"])
+            data.append([row.ruta_nombre, f"Bs. {row.precio:.2f}", str(row.total_pasajeros), f"Bs. {ingreso:.2f}"])
             gran_total += ingreso
 
-        data.append(["TOTAL GENERAL", "", "", f"Bs. {gran_total:,.2f}"])
+        data.append(["TOTAL GENERAL", "", "", f"Bs. {gran_total:.2f}"])
 
         t = Table(data)
         t.setStyle(TableStyle([
@@ -116,6 +141,7 @@ class ReportesView(BaseView):
         response.headers['Content-Disposition'] = 'attachment; filename=Reporte_Ingresos_Rutas_Sabores.pdf'
         return response
 
+
 # Integración al Menú de Flask-AppBuilder
 appbuilder.add_view(
     ReportesView,
@@ -123,12 +149,14 @@ appbuilder.add_view(
     category="Reportes",
     icon="fa-map"
 )
+
 appbuilder.add_link(
     "Top Excursiones",
     href="/reportesview/top_excursiones/",
     category="Reportes",
     icon="fa-trophy"
 )
+
 appbuilder.add_link(
     "Balance de Ingresos",
     href="/reportesview/ingresos/",

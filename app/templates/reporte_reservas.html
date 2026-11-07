@@ -2,27 +2,38 @@
 
 {% block content %}
 <div class="container my-4">
-    <h2><i class="fa fa-map"></i> Reporte de Reservas y Personas por Ruta</h2>
-    <hr>
+    <h2><i class="fa fa-map"></i> Reservas y Pasajeros por Ruta</h2>
+
+    <!-- Formulario de Filtro -->
+    <form method="GET" action="/reportesview/rutas/" class="form-inline mb-4 p-3 bg-dark text-white rounded">
+        <div class="form-group mr-3">
+            <label for="ruta_nombre" class="mr-2"><i class="fa fa-filter mr-1"></i> Filtrar por Nombre:</label>
+            <input type="text" name="ruta_nombre" id="ruta_nombre" class="form-control" 
+                   placeholder="Nombre de ruta..." value="{{ ruta_filtro }}">
+        </div>
+        <button type="submit" class="btn btn-primary mr-2"><i class="fa fa-search"></i> Filtrar</button>
+        <a href="/reportesview/rutas/" class="btn btn-outline-light"><i class="fa fa-refresh"></i> Limpiar</a>
+    </form>
+
     <table class="table table-striped table-hover shadow-sm">
         <thead class="thead-dark">
             <tr>
-                <th>Nombre de la Ruta</th>
+                <th>Ruta</th>
                 <th>Dificultad</th>
                 <th class="text-center">Total Reservas</th>
-                <th class="text-center">Total Personas</th>
+                <th class="text-center">Total Pasajeros</th>
             </tr>
         </thead>
         <tbody>
             {% for row in resultados %}
             <tr>
                 <td>{{ row.ruta_nombre }}</td>
-                <td><span class="badge badge-info">{{ row.dificultad }}</span></td>
+                <td>{{ row.dificultad }}</td>
                 <td class="text-center">{{ row.total_reservas }}</td>
                 <td class="text-center">{{ row.total_personas }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="4" class="text-center">No hay datos registrados aún.</td></tr>
+            <tr><td colspan="4" class="text-center">No hay registros para este filtro.</td></tr>
             {% endfor %}
         </tbody>
     </table>
